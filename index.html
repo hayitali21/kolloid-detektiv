@@ -129,8 +129,8 @@ input[type=range]::-moz-range-track{height:3px;background:var(--line2);border-ra
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--text);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--gold);margin-top:-12px}
 input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--text);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--gold)}
 .iep{position:absolute;top:.25rem;bottom:.2rem;width:0;border-left:1px dashed var(--gold);pointer-events:none}
-.iep span{position:absolute;bottom:-.1rem;left:0;transform:translateX(-50%);font-family:var(--mono);font-size:.7rem;color:var(--gold);white-space:nowrap}
-.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-top:-.4rem}
+.iep span{position:absolute;bottom:-.1rem;left:0;transform:translateX(-50%);font-family:var(--mono);font-size:.85rem;color:var(--gold);white-space:nowrap}
+.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.85rem;color:var(--dim);margin-top:-.4rem}
 .meter{display:grid;grid-template-columns:11rem 1fr 3.2rem;align-items:center;gap:.7rem;font-size:.85rem}
 .bar{height:8px;background:var(--line);border-radius:8px;overflow:hidden}
 .bar i{display:block;height:100%;border-radius:8px;transition:width .5s ease}
@@ -160,7 +160,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
 .tcard{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.05rem;min-height:4.4rem;border:1px solid var(--line2);border-radius:12px;background:var(--panel);cursor:grab;user-select:none;touch-action:none;transition:border-color .2s,transform .2s,opacity .2s}
 .tcard:hover{border-color:var(--gold)}
 .tcard .n{font-family:var(--mono);font-size:1.5rem;line-height:1}
-.tcard .p{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.tcard .p{font-family:var(--mono);font-size:.85rem;color:var(--muted)}
 .tcard.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;transform:translateY(-3px)}
 .tcard.dragging{opacity:.25}
 .tcard.ghost{position:fixed;z-index:50;pointer-events:none;width:5.5rem;opacity:.95;border-color:var(--gold);cursor:grabbing;transform:rotate(-3deg)}
@@ -241,12 +241,16 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
 kbd{font-family:var(--mono);font-size:.8rem;border:1px solid var(--line2);border-bottom-width:2px;border-radius:6px;padding:.05rem .45rem;color:var(--text);white-space:nowrap}
 
 /* ---------- Dars rejimi ---------- */
-body.lesson{font-size:21px}
+body.lesson{font-size:1.05rem}
 body.lesson .aux{display:none!important}
 body.lesson .view{padding:.8rem 1.4rem}
 body.lesson .split > .stage{flex:2.4}
 
 /* ---------- Responsive ---------- */
+/* Katta monitor / proyektor: shrift ekran eniga qarab o'sadi */
+@media (min-width:1400px){
+  :root{font-size:clamp(20px,1.15vw,40px)}
+}
 @media (max-width:1100px){
   :root{font-size:17px}
   .team{flex-basis:6rem}
@@ -478,6 +482,7 @@ body.lesson .split > .stage{flex:2.4}
   <button id="f-menu" class="aux">Asosiy menyu</button>
   <button id="f-reset" class="aux">Qaytadan boshlash</button>
   <button id="f-lesson">Dars rejimi</button>
+  <button id="f-full" title="To'liq ekran (F)">⛶ To'liq ekran</button>
   <span class="sp"></span>
   <button id="f-next" class="primary">Keyingi →</button>
 </footer>
@@ -883,8 +888,12 @@ class Rack {
   }
   layout(){
     const W = this.c.w, H = this.c.h, slot = W / 9;
-    const tw = Math.max(26, Math.min(62, slot * 0.46));
-    const labelH = this.opts.labels ? 64 : 40;
+    const tw = Math.max(26, Math.min(76, slot * 0.46));
+    // yozuvlar probirka kengligiga qarab kattalashadi (katta monitorda ham o'qilsin)
+    this.fN = clamp(Math.round(slot * 0.15), 16, 44);
+    this.phPre = slot >= 70 ? "pH " : "";   // tor ekranda faqat qiymat
+    this.fP = clamp(Math.round(Math.min(slot * 0.13, slot * 0.9 / ((this.phPre.length + 3) * 0.6))), 11, 38);
+    const labelH = this.opts.labels ? this.fN + this.fP * 1.3 + 22 : this.fN + 20;
     const th = Math.max(80, Math.min(H - labelH - 30, tw * 5.2));
     const y = Math.max(28, (H - th - labelH) / 2 + 14);
     this.geo = TUBES.map((t, i) => ({x: slot*i + slot/2 - tw/2, y, w:tw, h:th, liq: th*.16}));
@@ -910,19 +919,20 @@ class Rack {
       const cx = g.x + g.w/2;
       ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
       ctx.fillStyle = sel ? C.gold : C.text;
-      ctx.font = "400 20px ui-monospace,Consolas,monospace";
-      ctx.fillText(t.n, cx, g.y + g.h + 26);
+      const fN = this.fN, fP = this.fP;
+      ctx.font = `400 ${fN}px ui-monospace,Consolas,monospace`;
+      ctx.fillText(t.n, cx, g.y + g.h + fN + 6);
       if (this.opts.labels){
-        ctx.fillStyle = C.muted; ctx.font = "400 15px ui-monospace,Consolas,monospace";
-        ctx.fillText("pH " + fmt(t.ph), cx, g.y + g.h + 48);
+        ctx.fillStyle = C.text; ctx.font = `400 ${fP}px ui-monospace,Consolas,monospace`;
+        ctx.fillText(this.phPre + fmt(t.ph), cx, g.y + g.h + fN + fP * 1.3 + 10);
       }
-      if (unk){ ctx.fillStyle = C.muted; ctx.font = "700 24px system-ui,sans-serif"; ctx.fillText("?", cx, g.y - 10); }
+      if (unk){ ctx.fillStyle = C.muted; ctx.font = `700 ${Math.round(fN * 1.2)}px system-ui,sans-serif`; ctx.fillText("?", cx, g.y - 10); }
       if (sel && !this.opts.labels){
-        const txt = `№${t.n} · pH ${fmt(t.ph)}`;
-        ctx.font = "500 18px system-ui,sans-serif";
-        const tw = ctx.measureText(txt).width + 24, bx = clamp(cx - tw/2, 4, this.c.w - tw - 4), by = g.y - 44;
-        ctx.fillStyle = C.gold; roundRect(ctx, bx, by, tw, 30, 15); ctx.fill();
-        ctx.fillStyle = C.bg; ctx.fillText(txt, bx + tw/2, by + 21);
+        const txt = `№${t.n} · pH ${fmt(t.ph)}`, fs = Math.max(18, fP * 1.15), bh = Math.round(fs * 1.7);
+        ctx.font = `500 ${fs}px system-ui,sans-serif`;
+        const tw = ctx.measureText(txt).width + fs * 1.3, bx = clamp(cx - tw/2, 4, this.c.w - tw - 4), by = Math.max(2, g.y - bh - 12);
+        ctx.fillStyle = C.gold; roundRect(ctx, bx, by, tw, bh, bh / 2); ctx.fill();
+        ctx.fillStyle = C.bg; ctx.textBaseline = "middle"; ctx.fillText(txt, bx + tw/2, by + bh/2 + 1); ctx.textBaseline = "alphabetic";
       }
     }
   }
@@ -1551,12 +1561,23 @@ function go(v){
 function next(){ const v = S.view; if (v === "menu") go(0); else if (Number.isInteger(v) && v < 5) go(v + 1); }
 function prev(){ const v = S.view; if (v === "bonus" || v === 0) go("menu"); else if (Number.isInteger(v) && v > 0) go(v - 1); }
 function setLesson(on){ S.lesson = on; document.body.classList.toggle("lesson", on); $("#f-lesson").classList.toggle("on", on); save(); setTimeout(() => canvases.forEach(c => c.fit()), 30); }
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
 function fullscreen(){
+  const d = document.documentElement;
   try {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-    else document.exitFullscreen().catch(() => {});
+    if (!fsEl()) (d.requestFullscreen ? d.requestFullscreen() : d.webkitRequestFullscreen && d.webkitRequestFullscreen())?.catch?.(() => {});
+    else (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen && document.webkitExitFullscreen())?.catch?.(() => {});
   } catch(e) {}
 }
+function syncFull(){
+  const on = !!fsEl();
+  $("#f-full").classList.toggle("on", on);
+  $("#f-full").textContent = on ? "⛶ Chiqish" : "⛶ To'liq ekran";
+  setTimeout(() => canvases.forEach(c => c.fit()), 60);
+}
+if (!(document.fullscreenEnabled || document.webkitFullscreenEnabled)) $("#f-full").style.display = "none";
+document.addEventListener("fullscreenchange", syncFull);
+document.addEventListener("webkitfullscreenchange", syncFull);
 
 document.addEventListener("click", e => {
   const g = e.target.closest("[data-go]"); if (g){ go(+g.dataset.go); return; }
@@ -1569,6 +1590,7 @@ $("#f-next").addEventListener("click", next);
 $("#f-menu").addEventListener("click", () => go("menu"));
 $("#f-reset").addEventListener("click", openReset);
 $("#f-lesson").addEventListener("click", () => setLesson(!S.lesson));
+$("#f-full").addEventListener("click", fullscreen);
 
 document.addEventListener("keydown", e => {
   if (modal.classList.contains("show")){ if (e.key === "Escape") closeModal(); return; }
